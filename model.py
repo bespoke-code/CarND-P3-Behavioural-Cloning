@@ -18,12 +18,21 @@ def csv_import(csv_filepath):
 def agument_dataset(images, measurements):
     # flip all images
     # invert all measurements to reflect the data
-    pass
+
+    assert (len(images) == len(measurements))
+    agumented_dataset = []
+    for image in images:
+        agumented_dataset.append(flip(image))
+
+    agumented_measurements = []
+    for measurement in measurements:
+        agumented_measurements.append(-1*measurement)
+
+    return agumented_dataset, agumented_measurements
 
 
 def create_keras_model() -> Sequential:
     model = Sequential()
-
 
     model.add(Flatten(input_shape=(160,320,3)))
     model.add(Dense(1))
