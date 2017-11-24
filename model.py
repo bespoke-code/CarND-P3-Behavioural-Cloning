@@ -15,14 +15,14 @@ def csv_import(csv_filepath):
     return pd.read_csv(csv_filepath)
 
 
-def agument_dataset(images, measurements):
+def agument_dataset(original_images, measurements):
     # flip all images
     # invert all measurements to reflect the data
 
-    assert (len(images) == len(measurements))
+    assert (len(original_images) == len(measurements))
 
     agumented_dataset = []
-    for image in images:
+    for image in original_images:
         agumented_dataset.append(flip(image))
 
     agumented_measurements = []
@@ -35,7 +35,7 @@ def agument_dataset(images, measurements):
 def create_keras_model():
     keras_model = Sequential()
 
-    keras_model.add(Flatten(input_shape=(160,320,3)))
+    keras_model.add(Flatten(input_shape=(160, 320, 3)))
     keras_model.add(Dense(1))
 
     # Using NVIDIA's CNN Model as seen here:
