@@ -20,6 +20,7 @@ def agument_dataset(images, measurements):
     # invert all measurements to reflect the data
 
     assert (len(images) == len(measurements))
+
     agumented_dataset = []
     for image in images:
         agumented_dataset.append(flip(image))
@@ -31,12 +32,11 @@ def agument_dataset(images, measurements):
     return agumented_dataset, agumented_measurements
 
 
-def create_keras_model() -> Sequential:
-    model = Sequential()
+def create_keras_model():
+    keras_model = Sequential()
 
-    model.add(Flatten(input_shape=(160,320,3)))
-    model.add(Dense(1))
-
+    keras_model.add(Flatten(input_shape=(160,320,3)))
+    keras_model.add(Dense(1))
 
     # Using NVIDIA's CNN Model as seen here:
     # http://images.nvidia.com/content/tegra/automotive/images/2016/solutions/pdf/end-to-end-dl-using-px.pdf
@@ -44,24 +44,24 @@ def create_keras_model() -> Sequential:
 
     # Normalization layer
     # udacity lambda normalization layer as seen in the lectures
-    model.add(Lambda(lambda x: x / 255. - 0.5, input_shape=(160, 320, 3)))
+    keras_model.add(Lambda(lambda x: x / 255. - 0.5, input_shape=(160, 320, 3)))
 
     # Add in the future and see how this should fit
     # model.add(Lambda(lambda x: cv2.cvtColor(x, cv2.COLOR_RGB2GRAY)))
 
     # Normalized input planes (160 x 320 x 3) -> Conv2D, 5x5 kernel
-    model.add(Convolution2D(24,(5,5),strides=(2,2),activation='relu'))
-    model.add(Convolution2D(36, (5,5), strides=(2,2), activation='relu'))
-    model.add(Convolution2D(48, (5,5), strides=(2,2), activation='relu'))
-    model.add(Convolution2D(64, (3,3), strides=(1,1), activation='relu'))
-    model.add(Convolution2D(64, (3,3), strides=(1,1), activation='relu'))
-    model.add(Flatten())
-    model.add(Dense(100))
-    model.add(Dense(50))
-    model.add(Dense(10))
-    model.add(Dense(1))
+    keras_model.add(Convolution2D(24, (5, 5), strides=(2, 2), activation='relu'))
+    keras_model.add(Convolution2D(36, (5, 5), strides=(2, 2), activation='relu'))
+    keras_model.add(Convolution2D(48, (5, 5), strides=(2, 2), activation='relu'))
+    keras_model.add(Convolution2D(64, (3, 3), strides=(1, 1), activation='relu'))
+    keras_model.add(Convolution2D(64, (3, 3), strides=(1, 1), activation='relu'))
+    keras_model.add(Flatten())
+    keras_model.add(Dense(100))
+    keras_model.add(Dense(50))
+    keras_model.add(Dense(10))
+    keras_model.add(Dense(1))
 
-    return model
+    return keras_model
 
 
 if __name__ == '__main__':
@@ -75,7 +75,7 @@ if __name__ == '__main__':
 
     # organize images and measurements. fill arrays accordingly
     # as seen at: https://stackoverflow.com/questions/16476924/how-to-iterate-over-rows-in-a-dataframe-in-pandas
-    images=[]
+    images = []
     for row in driving_data.itertuples():
         # reading images in the following order:
         # center, left, right
@@ -87,12 +87,12 @@ if __name__ == '__main__':
     print("Loaded {num} images.".format(num=len(images)))
 
     steering_angles = []
-    steering_bias = 0.2 # tune this
+    steering_bias = 0.2  # tune this
     for row in driving_data.itertuples():
-        steering_angles.append( float(row[3]) )
+        steering_angles.append(float(row[3]))
         # add a corrective bias for each right image and -0.2 for each left camera image
-        steering_angles.append( float(row[3]) + steering_bias)
-        steering_angles.append( float(row[3]) - steering_bias)
+        steering_angles.append(float(row[3]) + steering_bias)
+        steering_angles.append(float(row[3]) - steering_bias)
     print("Loaded {num} steering angles.".format(num=len(steering_angles)))
 
     # generate model and compile
