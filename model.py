@@ -63,6 +63,7 @@ def data_generator(driving_data_list, batch_size=2048):
         for offset in np.arange(0, datapoints_count, batch_size):
             batch_data = driving_data_list[offset:offset+batch_size]
             batch_data = batch_data.reset_index(drop=True)
+            print('Batch data len: {co}'.format(co=len(batch_data)))
             images = []
             steering_angles = []
 
@@ -94,9 +95,12 @@ def data_generator(driving_data_list, batch_size=2048):
                 images[i] = add_noise(images[i])
             print("Random noise added to each image.")
 
+            print('Datapoints in batch: {count}'.format(count=len(steering_angles)))
+            result = (len(steering_angles) == len(images))
+            print('Steering angles count and image count match: {result}'.format(result=result))
             # Test if noise is added properly to the image
             #showImage(images[np.random.randint(0, len(images))], "Image with noise")
-            yield utils.shuffle(images, steering_angles)
+            yield utils.shuffle(np.array(images), np.array(steering_angles))
 
 
 def create_keras_model():
@@ -158,13 +162,14 @@ if __name__ == '__main__':
 
     # train the model
     print('Training...')
-    #model.fit(x=np.array(images), y=np.array(steering_angles), validation_split=0.3, shuffle=True)
+    batch_size = 512
     model.fit_generator(
-        data_generator(training_data, batch_size=512),
-        steps_per_epoch=2*len(training_data)/512, # Multiplied by 2 because of the data agumentation done in the generator
+        data_generator(training_data, batch_size=batch_size),
+        steps_per_epoch=2*len(training_data)/(6*batch_size), # Multiplied by 2 because of data agumentation.
+                                                      # Three images per data point
         epochs=3,
-        validation_data=data_generator(validation_data, batch_size=512),
-        validation_steps=2*len(validation_data)/512,
+        validation_data=data_generator(validation_data, batch_size=batch_size),
+        validation_steps=2*len(validation_data)/(6*batch_size),
         shuffle=True
     )
     # save the model
