@@ -2,10 +2,7 @@ import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 import pandas as pd
-from keras.layers import Flatten, Dense, Lambda
-from keras.layers import Convolution2D, MaxPooling2D, Cropping2D
-from keras.models import Sequential
-from os import getcwd
+
 
 def flip(image):
     return cv2.flip(image, 1)
@@ -76,8 +73,6 @@ if __name__ == '__main__':
     #print(steering_angles)
     #steering_angles.extend(agu_steer)
     #print(steering_angles)
-
-    exit(0)
     # Test print
     #print(dataset.loc[3][6])
 
@@ -88,7 +83,6 @@ if __name__ == '__main__':
     noise = cv2.randn(noise, (0, 0, 0), (255, 255, 255))
 
     cv2.imshow("Noise", noise)
-
     image = cv2.addWeighted(image, 0.75, noise, 0.25, 0)
     cv2.imshow("Noisy img", image)
 
@@ -97,4 +91,3 @@ if __name__ == '__main__':
     #cv2.imshow("Flipped image", image)
     #cv2.waitKey(0)
     cv2.destroyAllWindows()
-

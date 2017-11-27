@@ -2,10 +2,16 @@ import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 import pandas as pd
-from keras.layers import Flatten, Dense, Lambda, GaussianNoise
+from keras.layers import Flatten, Dense, Lambda
 from keras.layers import Convolution2D, Cropping2D, Dropout
 from keras import regularizers
 from keras.models import Sequential
+
+
+def showImage(image, title="Image"):
+    plt.imshow(image)
+    plt.title(title)
+    plt.show()
 
 
 def flip(image):
@@ -16,6 +22,9 @@ def add_noise(image):
     noise = np.zeros_like(image)
     noise = cv2.randn(noise, (0, 0, 0), (255, 255, 255))
     noise = cv2.cvtColor(noise, cv2.COLOR_BGR2RGB)
+    #plt.imshow(noise)
+    #plt.title("Generated noise")
+    #plt.show()
     return cv2.addWeighted(image, 0.75, noise, 0.25, 0)
 
 
@@ -42,10 +51,6 @@ def agument_dataset(original_images, measurements):
 
 def create_keras_model():
     keras_model = Sequential()
-
-    keras_model.add(Flatten(input_shape=(160, 320, 3)))
-    keras_model.add(Dense(1))
-
     # Using NVIDIA's CNN Model as seen here:
     # http://images.nvidia.com/content/tegra/automotive/images/2016/solutions/pdf/end-to-end-dl-using-px.pdf
     # Input plane (160 x 320 x 3)
@@ -53,14 +58,13 @@ def create_keras_model():
     # Normalization layer
     # udacity lambda normalization layer as seen in the lectures
     keras_model.add(Lambda(lambda x: x / 255. - 0.5, input_shape=(160, 320, 3)))
+    # Cropping the picture to include only relevant information
+    keras_model.add(Cropping2D(((55, 25), (0,0))))
 
     # Add Gaussian noise to randomly agument the dataset.
     #keras_model.add(GaussianNoise(2))
 
-    # Add in the future and see how this should fit
-    # model.add(Lambda(lambda x: cv2.cvtColor(x, cv2.COLOR_RGB2GRAY)))
-
-    # Normalized input planes (160 x 320 x 3) -> Conv2D, 5x5 kernel
+    # Normalized input planes (160 x 320 x 3), cropped -> Conv2D, 5x5 kernel
     keras_model.add(Convolution2D(24, (5, 5), strides=(2, 2), activation='relu'))
     keras_model.add(Convolution2D(36, (5, 5), strides=(2, 2), activation='relu'))
     keras_model.add(Convolution2D(48, (5, 5), strides=(2, 2), activation='relu'))
@@ -84,6 +88,9 @@ if __name__ == '__main__':
     log_name = "driving_log.csv"
     driving_data = csv_import("data/2016/" + log_name)
     data_17 = csv_import("data/2017/" + log_name)
+
+    #driving_data = csv_import("data/driving_log_test_1.csv")
+    #data_17 = csv_import("data/driving_log_test_2.csv")
 
     # Center, Left, Right, Steering, Throttle, Brake, Speed
     driving_data = driving_data.append(data_17, ignore_index=True)
@@ -111,13 +118,19 @@ if __name__ == '__main__':
 
     # Flipping the images to extend the training set
     agu_images, agu_steering_angles = agument_dataset(images, steering_angles)
+
+    # Test if agumented images are fine by picking a random image to be shown
+    showImage(agu_images[np.random.randint(0, len(agu_images))], "Agumented image")
+
     images.extend(agu_images)
     steering_angles.extend(agu_steering_angles)
 
-    for image in images:
-        image = add_noise(image)
+    for i in np.arange(0, len(images)):
+        images[i] = add_noise(images[i])
     print("Random noise added to each image.")
 
+    # Test if noise is added properly to the image
+    showImage(images[np.random.randint(0,len(images))], "Image with noise")
 
     # generate model and compile
     print("Compiling the KERAS model!")
