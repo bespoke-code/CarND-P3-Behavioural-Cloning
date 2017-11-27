@@ -6,6 +6,8 @@ from keras.layers import Flatten, Dense, Lambda
 from keras.layers import Convolution2D, Cropping2D, Dropout
 from keras import regularizers
 from keras.models import Sequential
+from sklearn import utils
+from sklearn import model_selection
 
 
 def showImage(image, title="Image"):
@@ -22,9 +24,8 @@ def add_noise(image):
     noise = np.zeros_like(image)
     noise = cv2.randn(noise, (0, 0, 0), (255, 255, 255))
     noise = cv2.cvtColor(noise, cv2.COLOR_BGR2RGB)
-    #plt.imshow(noise)
-    #plt.title("Generated noise")
-    #plt.show()
+
+    #showImage(noise, 'Generated noise')
     return cv2.addWeighted(image, 0.75, noise, 0.25, 0)
 
 
@@ -47,6 +48,55 @@ def agument_dataset(original_images, measurements):
         agumented_measurements.append(-1*measurement)
 
     return agumented_dataset, agumented_measurements
+
+
+def data_generator(driving_data_list, batch_size=2048):
+    # organize images and measurements. fill arrays accordingly via a generator function
+    steering_bias = 0.25  # tune this
+    datapoints_count = len(driving_data_list)
+    while 1:
+        # using SKLearn to shuffle the pandas dataframe as suggested here:
+        # https://stackoverflow.com/questions/15772009/shuffling-permutating-a-dataframe-in-pandas
+        utils.shuffle(driving_data_list)
+        driving_data_list = driving_data_list.reset_index(drop=True)
+
+        for offset in np.arange(0, datapoints_count, batch_size):
+            batch_data = driving_data_list[offset:offset+batch_size]
+            batch_data = batch_data.reset_index(drop=True)
+            images = []
+            steering_angles = []
+
+            # as seen at: https://stackoverflow.com/questions/16476924/how-to-iterate-over-rows-in-a-dataframe-in-pandas
+            for row in batch_data.itertuples():
+                # reading images in the following order:
+                # center, left, right
+                for column in np.arange(1, 4):
+                    img = cv2.imread(row[column].strip(' '))
+                    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                    images.append(img)
+                steering_angles.append(float(row[4]))
+                # add a corrective bias for each left image and -0.25 for each right camera image
+                steering_angles.append(float(row[4]) + steering_bias)
+                steering_angles.append(float(row[4]) - steering_bias)
+            print("Loaded {num} images.".format(num=len(images)))
+            print("Loaded {num} steering angles.".format(num=len(steering_angles)))
+
+            # Flipping the images to extend the training set
+            agu_images, agu_steering_angles = agument_dataset(images, steering_angles)
+
+            # Test if agumented images are fine by picking a random image to be shown
+            #showImage(agu_images[np.random.randint(0, len(agu_images))], "Agumented image")
+
+            images.extend(agu_images)
+            steering_angles.extend(agu_steering_angles)
+
+            for i in np.arange(0, len(images)):
+                images[i] = add_noise(images[i])
+            print("Random noise added to each image.")
+
+            # Test if noise is added properly to the image
+            #showImage(images[np.random.randint(0, len(images))], "Image with noise")
+            yield utils.shuffle(images, steering_angles)
 
 
 def create_keras_model():
@@ -95,53 +145,29 @@ if __name__ == '__main__':
     # Center, Left, Right, Steering, Throttle, Brake, Speed
     driving_data = driving_data.append(data_17, ignore_index=True)
 
-    # organize images and measurements. fill arrays accordingly
-    # as seen at: https://stackoverflow.com/questions/16476924/how-to-iterate-over-rows-in-a-dataframe-in-pandas
-    images = []
-    for row in driving_data.itertuples():
-        # reading images in the following order:
-        # center, left, right
-        for column in np.arange(1,4):
-            img = cv2.imread(row[column].strip(' '))
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            images.append(img)
-    print("Loaded {num} images.".format(num=len(images)))
+    # Training and validation data split
+    training_data, validation_data = model_selection.train_test_split(driving_data, test_size=0.3)
 
-    steering_angles = []
-    steering_bias = 0.25  # tune this
-    for row in driving_data.itertuples():
-        steering_angles.append(float(row[4]))
-        # add a corrective bias for each left image and -0.25 for each right camera image
-        steering_angles.append(float(row[4]) + steering_bias)
-        steering_angles.append(float(row[4]) - steering_bias)
-    print("Loaded {num} steering angles.".format(num=len(steering_angles)))
-
-    # Flipping the images to extend the training set
-    agu_images, agu_steering_angles = agument_dataset(images, steering_angles)
-
-    # Test if agumented images are fine by picking a random image to be shown
-    showImage(agu_images[np.random.randint(0, len(agu_images))], "Agumented image")
-
-    images.extend(agu_images)
-    steering_angles.extend(agu_steering_angles)
-
-    for i in np.arange(0, len(images)):
-        images[i] = add_noise(images[i])
-    print("Random noise added to each image.")
-
-    # Test if noise is added properly to the image
-    showImage(images[np.random.randint(0,len(images))], "Image with noise")
+    training_data = training_data.reset_index(drop=True)
+    validation_data = validation_data.reset_index(drop=True)
 
     # generate model and compile
-    print("Compiling the KERAS model!")
+    print('Compiling the KERAS model!')
     model = create_keras_model()
     model.compile(optimizer='adam', loss='mse')
 
     # train the model
-    print("Training...")
-    model.fit(x=np.array(images), y=np.array(steering_angles), validation_split=0.3, shuffle=True)
-
+    print('Training...')
+    #model.fit(x=np.array(images), y=np.array(steering_angles), validation_split=0.3, shuffle=True)
+    model.fit_generator(
+        data_generator(training_data, batch_size=512),
+        steps_per_epoch=2*len(training_data)/512, # Multiplied by 2 because of the data agumentation done in the generator
+        epochs=3,
+        validation_data=data_generator(validation_data, batch_size=512),
+        validation_steps=2*len(validation_data)/512,
+        shuffle=True
+    )
     # save the model
-    print("Saving model...")
+    print('Saving model...')
     model.save('model.h5')
-    print("Done!")
+    print('Done!')
