@@ -35,7 +35,7 @@ def csv_import(csv_filepath):
 
 def agument_dataset(original_images, measurements):
     # flip all images
-    # invert all measurements to reflect the data
+    # invert all measurements to reflect the image data
 
     assert (len(original_images) == len(measurements))
 
@@ -52,7 +52,7 @@ def agument_dataset(original_images, measurements):
 
 def data_generator(driving_data_list, batch_size=2048):
     # organize images and measurements. fill arrays accordingly via a generator function
-    steering_bias = 0.25  # tune this
+    steering_bias = 0.25
     datapoints_count = len(driving_data_list)
     while 1:
         # using SKLearn to shuffle the pandas dataframe as suggested here:
@@ -79,8 +79,8 @@ def data_generator(driving_data_list, batch_size=2048):
                 # add a corrective bias for each left image and -0.25 for each right camera image
                 steering_angles.append(float(row[4]) + steering_bias)
                 steering_angles.append(float(row[4]) - steering_bias)
-            print("Loaded {num} images.".format(num=len(images)))
-            print("Loaded {num} steering angles.".format(num=len(steering_angles)))
+            #print("Loaded {num} images.".format(num=len(images)))
+            #print("Loaded {num} steering angles.".format(num=len(steering_angles)))
 
             # Flipping the images to extend the training set
             agu_images, agu_steering_angles = agument_dataset(images, steering_angles)
@@ -93,11 +93,12 @@ def data_generator(driving_data_list, batch_size=2048):
 
             for i in np.arange(0, len(images)):
                 images[i] = add_noise(images[i])
-            print("Random noise added to each image.")
+            #print("Random noise added to each image.")
 
-            print('Datapoints in batch: {count}'.format(count=len(steering_angles)))
-            result = (len(steering_angles) == len(images))
-            print('Steering angles count and image count match: {result}'.format(result=result))
+            #print('Datapoints in batch: {count}'.format(count=len(steering_angles)))
+            #result = (len(steering_angles) == len(images))
+            #print('Steering angles count and image count match: {result}'.format(result=result))
+
             # Test if noise is added properly to the image
             #showImage(images[np.random.randint(0, len(images))], "Image with noise")
             yield utils.shuffle(np.array(images), np.array(steering_angles))
@@ -114,9 +115,6 @@ def create_keras_model():
     keras_model.add(Lambda(lambda x: x / 255. - 0.5, input_shape=(160, 320, 3)))
     # Cropping the picture to include only relevant information
     keras_model.add(Cropping2D(((55, 25), (0,0))))
-
-    # Add Gaussian noise to randomly agument the dataset.
-    #keras_model.add(GaussianNoise(2))
 
     # Normalized input planes (160 x 320 x 3), cropped -> Conv2D, 5x5 kernel
     keras_model.add(Convolution2D(24, (5, 5), strides=(2, 2), activation='relu'))
