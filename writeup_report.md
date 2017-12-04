@@ -28,14 +28,14 @@ NVidia's deep CNN architecture as proposed in their
 with changes applied to the input layer to reflect the image size used for training in 
 this project. Other layers were also added, as seen in the table below.
 
-![NVidia's model architecture](./examples/placeholder.png)
+![NVidia's model architecture](./examples/nvidia-model-arch.png)
 
-The original model architecture. The resulting modified architecture based on the
+The original model architecture. The resulting modified architecture ([model.py, lines 108-135](model.py)) based on the
 NVidia model is presented in the table below.
 
 | Layer         		| Description	        					    | 
 |:---------------------:|:---------------------------------------------:| 
-| Input         		| 160x320x3 RGB images                          |
+| Input         		| 160x320x3 RGB images with added RGB noise     |
 | Normalization         | Lambda normalization layer                    |
 | Cropping, 2D          | Crop the image to filter out unnecessary info |
 | Convolution 5x5     	| 2x2 stride, valid padding                 	|
@@ -70,7 +70,7 @@ connected part of the model. Also, L2 regularization was introduced in the
 fully connected layers to help the model prevent overfitting as well.
 
 
-### Data preprocessing and agumentation
+## Data preprocessing and agumentation
 
 The data collecting and (pre)processing is probably the most significant part of this project.
 For a nice, balanced dataset, I opted for a few laps of center-lane driving around the test track
@@ -96,9 +96,17 @@ from overfitting on the test track images.
 - since we're training the model on RGB images, it would be interesting
 to see if colour shifts can improve the model in a further point of time too.
 
-![Noise example](examples/noise_image.png)
+![Original image example](examples/original-image-sample.png)
+
+The original image is shown above.
+
+![Noise example](examples/noise.png)
 
 An example of the RGB noise added to a photo.
+
+![Noisy picture example](examples/noisy-image.png)
+
+An example of an image with added noise.
 
 Each frame of the dataset is cropped inside the model to reduce
 the model's size and remove unnecessary image features from influencing
@@ -108,15 +116,18 @@ only by looking at the road ahead.
 Images from the left and right cameras were also used for training,
 with a corresponding steering angle corrective bias of 0.25 added to
 each left camera image measurement, and -0.25 to each right camera image
- measurement.
+ measurement. Also used were Udacity's driving data points, given in the 
+ lecture materials.
 
-#### Important numbers
-- Total data points (steering measurements, paired with corresponding images): **X**
+### Important numbers
+- Total data points (steering measurements, paired with corresponding images): **48216**
 - A **70/30 train/test split** was used.
-- Training dataset: **Y** data points
-- Validation dataset: **Z** data points
+- Training dataset: **33751** data points
+- Validation dataset: **14465** data points
 
-### Training Approach
+---
+
+## Training Approach
 
 Training was done in 3 epochs, with a batch size of 3072 data points.
 The training dataset was passed on to the model via a generator function
@@ -141,7 +152,9 @@ position even on straights, while maintaining a speed of **15MPH**.
 A video showing the model's performance on the test track can be found
 [here](video.mp4).
 
-### Further optimization (TODOs)
+---
+
+## Further optimization (TODOs)
 - Improve the model's ability to handle twisted, tight turns by fine-tuning
 the model on a new dataset, recording only sharp turns.
 - Try shifting the colour on some images to see if the model would

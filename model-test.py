@@ -4,6 +4,12 @@ from matplotlib import pyplot as plt
 import pandas as pd
 
 
+def showImage(image, title="Image"):
+    plt.imshow(image)
+    plt.title(title)
+    plt.show()
+
+
 def flip(image):
     return cv2.flip(image, 1)
 
@@ -33,10 +39,10 @@ if __name__ == '__main__':
     driving_data = csv_import("data/driving_log_test_1.csv")
     dataset2 = csv_import("data/driving_log_test_2.csv")
     driving_data = driving_data.append(dataset2, ignore_index=True)
-    #print(dataset1.iloc[3][:])
-    #print(dataset2.loc[3])
-    #print(driving_data.append(dataset2, ignore_index=True))
-    print(driving_data.shape)
+
+    print(dataset2.loc[3])
+    print(driving_data.append(dataset2, ignore_index=True))
+
     images = []
     for row in driving_data.itertuples():
         # reading images in the following order:
@@ -78,16 +84,21 @@ if __name__ == '__main__':
 
     image_name = "data/2016/IMG/left_2016_12_01_13_34_23_036.jpg"
     image = cv2.imread(image_name)
-
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    showImage(image, "Original image")
     noise = np.zeros_like(image)
     noise = cv2.randn(noise, (0, 0, 0), (255, 255, 255))
-
-    cv2.imshow("Noise", noise)
+    noise = cv2.cvtColor(noise, cv2.COLOR_BGR2RGB)
+    showImage(noise, "Random generated noise")
+    #cv2.imshow("Noise", noise)
     image = cv2.addWeighted(image, 0.75, noise, 0.25, 0)
-    cv2.imshow("Noisy img", image)
 
-    cv2.waitKey(0)
-    #image = flip(image)
+    #cv2.imshow("Noisy img", image)
+    showImage(image, "Noisy image")
+
+    #cv2.waitKey(0)
+    image = flip(image)
+    showImage(image, "Flipped image")
     #cv2.imshow("Flipped image", image)
     #cv2.waitKey(0)
     cv2.destroyAllWindows()
